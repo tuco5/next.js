@@ -14,7 +14,7 @@ use crate::{
 #[turbo_tasks::value]
 pub struct FileSource {
     pub path: ResolvedVc<FileSystemPath>,
-    pub query: ResolvedVc<RcStr>,
+    pub query: RcStr,
 }
 
 #[turbo_tasks::value_impl]
@@ -23,20 +23,13 @@ impl FileSource {
     pub fn new(path: ResolvedVc<FileSystemPath>) -> Vc<Self> {
         Self::cell(FileSource {
             path,
-            query: ResolvedVc::cell(RcStr::default()),
+            query: RcStr::default(),
         })
     }
 
     #[turbo_tasks::function]
-    pub async fn new_with_query(
-        path: ResolvedVc<FileSystemPath>,
-        query: ResolvedVc<RcStr>,
-    ) -> Result<Vc<Self>> {
-        if query.await?.is_empty() {
-            Ok(Self::new(*path))
-        } else {
-            Ok(Self::cell(FileSource { path, query }))
-        }
+    pub fn new_with_query(path: ResolvedVc<FileSystemPath>, query: RcStr) -> Vc<Self> {
+        Self::cell(FileSource { path, query })
     }
 }
 
@@ -44,7 +37,7 @@ impl FileSource {
 impl Source for FileSource {
     #[turbo_tasks::function]
     fn ident(&self) -> Vc<AssetIdent> {
-        AssetIdent::from_path(*self.path).with_query(*self.query)
+        AssetIdent::from_path(*self.path).with_query(self.query.clone())
     }
 }
 

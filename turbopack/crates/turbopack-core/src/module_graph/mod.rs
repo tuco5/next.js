@@ -316,14 +316,21 @@ impl SingleModuleGraph {
         #[cfg(debug_assertions)]
         {
             let mut duplicates = Vec::new();
-            let mut set = FxHashSet::default();
+            let mut ident_to_module: FxHashMap<ReadRef<RcStr>, Vec<ResolvedVc<Box<dyn Module>>>> =
+                FxHashMap::default();
             for &module in modules.keys() {
                 let ident = module.ident().to_string().await?;
-                if !set.insert(ident.clone()) {
+                let modules = ident_to_module.entry(ident.clone()).or_default();
+                modules.push(module);
+                if modules.len() > 1 {
                     duplicates.push(ident);
                 }
             }
             if !duplicates.is_empty() {
+                let duplicates: Vec<_> = duplicates
+                    .iter()
+                    .map(|i| (i, ident_to_module.get(i).unwrap()))
+                    .collect();
                 panic!("Duplicate module idents in graph: {duplicates:#?}");
             }
         }
